@@ -835,14 +835,15 @@ DESCRIPCION_INPUT:
             let descParagraphs = descInput.split('\n').filter(p => p.trim() !== '');
             let descXml = descParagraphs.map(p => `<w:p><w:r><w:t>${p}</w:t></w:r></w:p>`).join('');
 
-            docXml = docXml.replace(/\{CENTRO_NUM\}/g, centroNum)
-                          .replace(/\{CENTRO_NOMBRE\}/g, centroNombre)
-                          .replace(/\{TEXTO_ROJO\}/g, textoRojo)
-                          .replace(/\{FECHA_INDICADOR\}/g, fechaInd)
-                          .replace(/\{EXPEDIENTE\}/g, expediente)
-                          .replace(/\{DESCRIPCION_INPUT\}/g, descXml)
-                          .replace(/\{QUIEN\}/g, quien)
-                          .replace(/\{OBSERVACIONES\}/g, observaciones);
+            docXml = docXml.replace(/\{\{asunto\}\}/g, asuntoCorreo)
+              .replace(/\{\{fecha_informe\}\}/g, fechaInformeActual)
+              .replace(/\{\{tipo_encabezado\}\}/g, tipoEncabezadoTexto)
+              .replace(/\{\{texto_rojo\}\}/g, textoRojo)
+              .replace(/\{\{fecha_indicador\}\}/g, fechaInd)
+              .replace(/\{\{expediente_numero\}\}/g, expediente)
+              .replace(/\{\{input_texto\}\}/g, descXml)
+              .replace(/\{\{quien_texto\}\}/g, quien)
+              .replace(/\{\{observaciones_texto\}\}/g, observaciones);
 
             zip.file("word/document.xml", docXml);
             let blob = await zip.generateAsync({type: "blob"});
