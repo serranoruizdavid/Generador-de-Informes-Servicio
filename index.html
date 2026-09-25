@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador Oficial de Informes Word - Mercadona</title>
-    <!-- Librerías JSZip y FileSaver -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
@@ -249,7 +248,6 @@
             margin-top: 15px;
         }
 
-        /* Modales */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -336,35 +334,30 @@
     <div class="header-subtitle">Servicio en Tienda</div>
 </div>
 
-<!-- Modal Historial -->
 <div id="historyModal" class="modal-overlay">
     <div class="modal-content">
         <button class="modal-close" onclick="cerrarHistorialModal()">&times;</button>
         <h2 style="color: #008741; margin-top: 0;">🕒 Historial de Informes Recientes</h2>
         <p style="font-size: 13.5px; color: #666;">Selecciona un informe anterior para volver a cargar sus datos en el formulario:</p>
-        <div id="historyListContainer" style="margin-top: 15px;">
-            <!-- Contenido dinámico -->
-        </div>
+        <div id="historyListContainer" style="margin-top: 15px;"></div>
         <div style="text-align: right; margin-top: 20px;">
             <button class="clear-btn-action" style="padding: 8px 14px;" onclick="vaciarHistorial()">🗑️ Vaciar Historial</button>
         </div>
     </div>
 </div>
 
-<!-- Modal Información / Actualizaciones -->
 <div id="infoModal" class="modal-overlay">
     <div class="modal-content">
         <button class="modal-close" onclick="cerrarInfoModal()">&times;</button>
         <h2 style="color: #008741; margin-top: 0;">ℹ️ Información de la Aplicación y Novedades</h2>
-        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.2</b></p>
-        
+        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.2.3</b></p>
         <h3 style="color: #005229; border-bottom: 2px solid #008741; padding-bottom: 5px; margin-top: 20px;">📋 Historial de Mejoras e Innovaciones</h3>
-
         <div style="background: #f9fbf9; border-left: 4px solid #008741; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
-            <b>v3.2 - Integración Web y Almacenamiento Local</b><br>
-            • Carga automática de la plantilla de Word desde el servidor web.<br>
-            • Guardado de borradores automático en segundo plano.<br>
-            • Historial de informes generados para recuperación rápida.
+            <b>v3.2.3 - Nomenclatura Exacta y Texto Estándar</b><br>
+            • Formato de archivo Word: YYMMDD Queja/Felicitación de Servicio C-XXXX Texto<br>
+            • Formato de asunto de correo: YYMMDD ST Queja/Felicitación de Servicio de la Tienda C-XXXX<br>
+            • Plantilla de texto fijo integrada en Outlook.<br>
+            • Carga automática de plantilla web y borradores guardados.
         </div>
         <div style="text-align: center; margin-top: 20px;">
             <button class="btn-word" style="padding: 10px 25px;" onclick="cerrarInfoModal()">Cerrar</button>
@@ -372,7 +365,6 @@
     </div>
 </div>
 
-<!-- Modal Tutorial -->
 <div id="tutorialModal" class="modal-overlay">
     <div class="modal-content">
         <button class="modal-close" onclick="cerrarTutorial()">&times;</button>
@@ -532,7 +524,20 @@ DESCRIPCION_INPUT:
         "peniscola": "Peñíscola"
     };
 
-    // Cargar plantilla por defecto desde la web al abrir
+    function obtenerFechaAAMMDD() {
+        let d = new Date();
+        let yy = String(d.getFullYear()).slice(-2);
+        let mm = String(d.getMonth() + 1).padStart(2, '0');
+        let dd = String(d.getDate()).padStart(2, '0');
+        return `${yy}${mm}${dd}`;
+    }
+
+    function formatearTextoDestacadoFrase(str) {
+        if (!str) return '';
+        let limpio = str.replace(/:$/, '').trim();
+        return limpio.charAt(0).toUpperCase() + limpio.slice(1).toLowerCase();
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         cargarPlantillaServidor();
         recuperarBorrador();
@@ -569,7 +574,6 @@ DESCRIPCION_INPUT:
         reader.readAsArrayBuffer(file);
     });
 
-    // --- Persistencia y Borradores ---
     function guardarBorrador() {
         const datos = {
             boxAutoPaste: document.getElementById('boxAutoPaste').value,
@@ -616,7 +620,6 @@ DESCRIPCION_INPUT:
         } catch(e) {}
     }
 
-    // --- Historial ---
     function registrarEnHistorial() {
         let expediente = document.getElementById('campoExpediente').value || 'Sin Expediente';
         let tienda = document.getElementById('campoCentroNombre').value || 'Tienda';
@@ -630,8 +633,8 @@ DESCRIPCION_INPUT:
         };
 
         let historial = JSON.parse(localStorage.getItem('mercadona_app_historial') || '[]');
-        historial.unshift(item); // Insertar al inicio
-        if (historial.length > 10) historial = historial.slice(0, 10); // Limitar a los 10 últimos
+        historial.unshift(item);
+        if (historial.length > 10) historial = historial.slice(0, 10);
         localStorage.setItem('mercadona_app_historial', JSON.stringify(historial));
     }
 
@@ -807,7 +810,6 @@ DESCRIPCION_INPUT:
         statusDiv.innerText = msg;
     }
 
-    // --- Generación de Word ---
     async function generarDesdePlantillaDirecto() {
         if (!templateFileBuffer) {
             mostrarEstado("Error: No se ha cargado ninguna plantilla .docx.", "error");
@@ -845,8 +847,11 @@ DESCRIPCION_INPUT:
             zip.file("word/document.xml", docXml);
             let blob = await zip.generateAsync({type: "blob"});
             
-            let prefijo = esFelicitacion ? "FELICITACIÓN" : "QUEJA";
-            let fileName = `${prefijo} SERVICIO C-${centroNum} ${centroNombre}.docx`;
+            let aammdd = obtenerFechaAAMMDD();
+            let tipoTexto = esFelicitacion ? "Felicitación" : "Queja";
+            let textoFrase = formatearTextoDestacadoFrase(textoRojo);
+            
+            let fileName = `${aammdd} ${tipoTexto} de Servicio C-${centroNum} ${textoFrase}.docx`;
             saveAs(blob, fileName);
             mostrarEstado("✓ Documento Word generado e historial guardado con éxito.", "success");
         } catch (err) {
@@ -858,15 +863,17 @@ DESCRIPCION_INPUT:
         registrarEnHistorial();
         let esFelicitacion = document.getElementById('tipoFelicitacion').checked;
         let centroNum = document.getElementById('campoCentroNum').value || "";
-        let centroNombre = document.getElementById('campoCentroNombre').value || "";
         let para = document.getElementById('campoEmailPara').value || "";
         let cc = document.getElementById('campoEmailCC').value || "";
         let cco = document.getElementById('campoEmailCCO').value || "";
 
-        let prefijo = esFelicitacion ? "FELICITACIÓN" : "QUEJA";
-        let asunto = `${prefijo} SERVICIO C-${centroNum} ${centroNombre}`;
+        let aammdd = obtenerFechaAAMMDD();
+        let tipoTexto = esFelicitacion ? "Felicitación" : "Queja";
+        let asunto = `${aammdd} ST ${tipoTexto} de Servicio de la Tienda C-${centroNum}`;
 
-        let mailtoUrl = `mailto:${encodeURIComponent(para)}?cc=${encodeURIComponent(cc)}&bcc=${encodeURIComponent(cco)}&subject=${encodeURIComponent(asunto)}`;
+        let cuerpoEmail = `Informarte de la ${tipoTexto} de Servicio que hemos recibido.\nAnte cualquier duda, podéis responder sobre este correo o enviar uno nuevo a:\nservicioentienda@mercadona.es`;
+
+        let mailtoUrl = `mailto:${encodeURIComponent(para)}?cc=${encodeURIComponent(cc)}&bcc=${encodeURIComponent(cco)}&subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpoEmail)}`;
         window.location.href = mailtoUrl;
         mostrarEstado("✓ Borrador de correo preparado en Outlook.", "success");
     }
