@@ -369,12 +369,19 @@
     <div class="modal-content">
         <button class="modal-close" onclick="cerrarInfoModal()">&times;</button>
         <h2 style="color: #008741; margin-top: 0;">ℹ️ Información de la Aplicación y Novedades</h2>
-        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.4</b></p>
+        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.5</b></p>
         
         <h3 style="color: #005229; border-bottom: 2px solid #008741; padding-bottom: 5px; margin-top: 20px;">📋 Historial de Mejoras e Innovaciones</h3>
 
         <div class="step-card">
-            <div class="step-title">v3.4 - Auto-Detección de Tipo de Documento <span class="update-badge">NUEVO</span></div>
+            <div class="step-title">v3.5 - Firma Automática en Outlook <span class="update-badge">NUEVO</span></div>
+            <div class="step-desc">
+                • El botón de redactar correo ahora genera un archivo de borrador (.eml) que, al abrirse, inserta automáticamente la firma gráfica en el cuerpo del mensaje y el formato enriquecido sin necesidad de seleccionarla en Outlook.
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-title">v3.4 - Auto-Detección de Tipo de Documento</div>
             <div class="step-desc">
                 • Eliminada la selección manual de Queja/Felicitación. Ahora el sistema detecta automáticamente el tipo basándose en la clasificación de servicio.
             </div>
@@ -384,13 +391,6 @@
             <div class="step-title">v3.3 - Auto-Carga de Plantilla</div>
             <div class="step-desc">
                 • Eliminado el botón manual de subida. La aplicación ahora obtiene directamente el archivo <code>plantilla.docx</code> desde el repositorio de forma automática e invisible.
-            </div>
-        </div>
-
-        <div class="step-card">
-            <div class="step-title">v3.2 - Historial de Informes</div>
-            <div class="step-desc">
-                • Añadido un nuevo botón en la cabecera para consultar el historial de los informes generados localmente. Permite ver el nombre, centro, expediente y fecha de generación de los últimos 50 informes.
             </div>
         </div>
 
@@ -444,7 +444,7 @@
 
         <div class="step-card">
             <div class="step-title">8º Redacción del Correo en Outlook</div>
-            <div class="step-desc">Haz clic en <b>"📧 2. Redactar Correo en Outlook"</b>. Al abrirse el borrador, cambia el remitente a <code>servicioentienda@mercadona.es</code>.</div>
+            <div class="step-desc">Haz clic en <b>"📧 2. Descargar Borrador Outlook"</b>. Se descargará un archivo de correo que, al abrirlo, tendrá todo redactado y la firma lista para enviar desde <code>servicioentienda@mercadona.es</code>.</div>
         </div>
 
         <div style="text-align: center; margin-top: 20px;">
@@ -573,7 +573,7 @@ DESCRIPCION_INPUT:
 
     <div class="btn-group">
         <button class="btn-word" onclick="generarDesdePlantillaDirecto()">📄 1. Descargar Word (.docx)</button>
-        <button class="btn-mail" onclick="abrirCorreoOutlook()">📧 2. Redactar Correo en Outlook</button>
+        <button class="btn-mail" onclick="generarBorradorEml()">📧 2. Descargar Borrador Outlook</button>
     </div>
 
     <div id="status"></div>
@@ -625,7 +625,6 @@ DESCRIPCION_INPUT:
     // === LÓGICA DE HISTORIAL ===
     function guardarEnHistorial(nombreArchivo, expediente, centro) {
         let historial = JSON.parse(localStorage.getItem('historialInformes') || '[]');
-        
         let ahora = new Date();
         let fechaFormateada = ahora.toLocaleDateString('es-ES') + " " + ahora.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
         
@@ -721,7 +720,6 @@ DESCRIPCION_INPUT:
     async function pegarDesdePortapapelesDirecto() {
         let box = document.getElementById('boxAutoPaste');
         box.focus();
-
         try {
             if (navigator.clipboard && navigator.clipboard.readText) {
                 let texto = await navigator.clipboard.readText();
@@ -732,9 +730,8 @@ DESCRIPCION_INPUT:
                 }
             }
         } catch (err) {
-            console.log("Acceso directo a portapapeles restringido en navegador local, usando evento nativo...");
+            console.log("Acceso directo a portapapeles restringido, usando evento nativo...");
         }
-
         mostrarEstado("Por favor, pulsa Ctrl + V dentro del cuadro de texto para pegar el contenido.", "error");
     }
 
@@ -870,7 +867,6 @@ DESCRIPCION_INPUT:
         if (obs) document.getElementById('campoObservaciones').value = obs;
 
         let inputExtraido = "";
-        
         let descMatch = rawText.match(/(?:DESCRIPCION[_\s]?INPUT|DESCRIPCION|INPUT[_\s]?INICIO|INPUT):?/i);
         let finMatch = rawText.match(/INPUT[_\s]?FIN:?/i);
 
@@ -945,23 +941,85 @@ DESCRIPCION_INPUT:
         };
     }
 
-    function abrirCorreoOutlook() {
+    // Convertir la imagen a Base64
+    async function obtenerBase64DeImagen(url) {
+        try {
+            let res = await fetch(url);
+            let blob = await res.blob();
+            return new Promise((resolve, reject) => {
+                let reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.warn("No se pudo cargar la imagen de la firma", e);
+            return null;
+        }
+    }
+
+    // Generar archivo .eml con formato HTML y firma embebida
+    async function generarBorradorEml() {
         let d = obtenerDatosFormulario();
-
         let asunto = `${d.fechaAAMMDD} ST ${d.tipoSingular} de Servicio de la Tienda C-${d.centroNum}`;
+        let firmaCid = "firma_mercadona_12345";
         
-        let cuerpo = `Informarte de la ${d.tipoSingular} de Servicio que hemos recibido.\n\n` +
-            `Ante cualquier duda, podéis responder sobre este correo o enviar uno nuevo a:\n\n` +
-            `servicioentienda@mercadona.es`;
+        let cuerpoHtml = `
+            <html>
+            <body style="font-family: Calibri, sans-serif; font-size: 14px; color: #000000;">
+                <p>Informarte de la ${d.tipoSingular} de Servicio que hemos recibido.</p>
+                <p>Ante cualquier duda, podéis responder sobre este correo o enviar uno nuevo a:<br>
+                <a href="mailto:servicioentienda@mercadona.es" style="color: #0563C1;">servicioentienda@mercadona.es</a></p>
+                <br>
+        `;
 
-        let mailtoUrl = `mailto:${encodeURIComponent(d.emailPara)}` +
-            `?cc=${encodeURIComponent(d.emailCC)}` +
-            `&bcc=${encodeURIComponent(d.emailCCO)}` +
-            `&subject=${encodeURIComponent(asunto)}` +
-            `&body=${encodeURIComponent(cuerpo)}`;
+        // Intentar obtener la firma de Github/Servidor local
+        let firmaBase64 = await obtenerBase64DeImagen('firma.png');
 
-        window.location.href = mailtoUrl;
-        mostrarEstado("✓ Abriendo borrador de correo en Outlook...", "success");
+        if (firmaBase64) {
+            cuerpoHtml += `<img src="cid:${firmaCid}" alt="Firma Servicio en Tienda">`;
+        } else {
+            cuerpoHtml += `<p style="color:red; font-size:12px;">(No se encontró la imagen de la firma. Sube 'firma.png' al repositorio)</p>`;
+        }
+
+        cuerpoHtml += `</body></html>`;
+
+        // Construir la estructura Multipart MIME para el EML
+        let emlContent = 
+`To: ${d.emailPara}
+Cc: ${d.emailCC}
+Bcc: ${d.emailCCO}
+Subject: =?utf-8?B?${btoa(unescape(encodeURIComponent(asunto)))}?=
+X-Unsent: 1
+Content-Type: multipart/related; boundary="boundary-example"
+
+--boundary-example
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+${cuerpoHtml.replace(/=/g, '=3D')}
+
+`;
+
+        if (firmaBase64) {
+            emlContent += 
+`--boundary-example
+Content-Type: image/png; name="firma.png"
+Content-ID: <${firmaCid}>
+Content-Transfer-Encoding: base64
+Content-Disposition: inline; filename="firma.png"
+
+${firmaBase64}
+
+`;
+        }
+
+        emlContent += `--boundary-example--`;
+
+        // Descargar el EML
+        let blob = new Blob([emlContent], { type: "message/rfc822" });
+        saveAs(blob, `Correo_${d.tipoSingular}_C-${d.centroNum}.eml`);
+        mostrarEstado("✓ Borrador de correo descargado. Ábrelo (arriba a la derecha) para enviarlo desde Outlook.", "success");
     }
 
     function convertirMarkdownAXmlWordInline(texto) {
