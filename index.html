@@ -118,21 +118,6 @@
         }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        .radio-group { 
-            margin-top: 10px; 
-            background: #eef6f2; 
-            padding: 12px; 
-            border-radius: 6px; 
-            border: 1px solid #d2e5db;
-        }
-        .radio-group label { 
-            display: inline; 
-            font-weight: 600; 
-            margin-right: 25px; 
-            cursor: pointer; 
-            text-transform: none;
-            color: #005229;
-        }
         .btn-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -384,12 +369,19 @@
     <div class="modal-content">
         <button class="modal-close" onclick="cerrarInfoModal()">&times;</button>
         <h2 style="color: #008741; margin-top: 0;">ℹ️ Información de la Aplicación y Novedades</h2>
-        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.3</b></p>
+        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.4</b></p>
         
         <h3 style="color: #005229; border-bottom: 2px solid #008741; padding-bottom: 5px; margin-top: 20px;">📋 Historial de Mejoras e Innovaciones</h3>
 
         <div class="step-card">
-            <div class="step-title">v3.3 - Auto-Carga de Plantilla <span class="update-badge">NUEVO</span></div>
+            <div class="step-title">v3.4 - Auto-Detección de Tipo de Documento <span class="update-badge">NUEVO</span></div>
+            <div class="step-desc">
+                • Eliminada la selección manual de Queja/Felicitación. Ahora el sistema detecta automáticamente el tipo basándose en la clasificación de servicio.
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-title">v3.3 - Auto-Carga de Plantilla</div>
             <div class="step-desc">
                 • Eliminado el botón manual de subida. La aplicación ahora obtiene directamente el archivo <code>plantilla.docx</code> desde el repositorio de forma automática e invisible.
             </div>
@@ -399,13 +391,6 @@
             <div class="step-title">v3.2 - Historial de Informes</div>
             <div class="step-desc">
                 • Añadido un nuevo botón en la cabecera para consultar el historial de los informes generados localmente. Permite ver el nombre, centro, expediente y fecha de generación de los últimos 50 informes.
-            </div>
-        </div>
-
-        <div class="step-card">
-            <div class="step-title">v3.1 - Optimización de Reglas para Texto Destacado</div>
-            <div class="step-desc">
-                • Refinada la regla del prompt para Copilot: en clasificaciones con <b>FYC</b> se toma el combo posterior (3º nivel), mientras que en el resto se toma la categoría posterior a <b>TIENDA</b> (2º nivel).
             </div>
         </div>
 
@@ -444,7 +429,7 @@
 
         <div class="step-card">
             <div class="step-title">5º Auto-Rellenado y Plantilla Integrada</div>
-            <div class="step-desc">Los campos de la Sección 3 se rellenarán automáticamente. La <b>Plantilla Word</b> ya está configurada en el sistema y se carga automáticamente sin que tengas que hacer nada.</div>
+            <div class="step-desc">Los campos de la Sección 3 se rellenarán automáticamente y se detectará si es Queja o Felicitación. La <b>Plantilla Word</b> se carga automáticamente de fondo.</div>
         </div>
 
         <div class="step-card">
@@ -477,7 +462,6 @@
     </div>
     <div class="prompt-box" id="promptText">Analiza la captura de pantalla del CRM y devuélveme la información en este formato exacto de bloque de texto para pegarlo en la aplicación:
 
-TIPO: [Queja o Felicitación]
 CENTRO_NUM: [Número de 4 dígitos, ej: 2959]
 CENTRO_NOMBRE: [Nombre exacto de la tienda en formato Nombre Propio (ej: "Puçol", "Los Molinos"), OMITIENDO texto entre paréntesis. IMPORTANTE: Respeta fielmente los caracteres especiales, cedillas (ç), eñes (ñ) y tildes]
 ZONA_NUM: [Número de zona del CRM, ej: 46 o 3]
@@ -510,14 +494,6 @@ DESCRIPCION_INPUT:
 <div class="card">
     <h1>📄 3. Generar Documento Word y Redactar Correo</h1>
 
-    <div class="radio-group">
-        <label><b>Tipo de Documento:</b></label>
-        <input type="radio" id="tipoQueja" name="tipoDoc" value="Queja" checked>
-        <label for="tipoQueja">Queja de Servicio</label>
-        <input type="radio" id="tipoFelicitacion" name="tipoDoc" value="Felicitación">
-        <label for="tipoFelicitacion">Felicitación de Servicio</label>
-    </div>
-
     <div class="grid-3">
         <div>
             <label>Número de Centro:</label>
@@ -548,7 +524,7 @@ DESCRIPCION_INPUT:
         </div>
     </div>
 
-    <label>Texto Destacado (Selecciona o escribe manualmente):</label>
+    <label>Texto Destacado (Clasificación de Servicio):</label>
     <select id="selectorTextoRojo" onchange="seleccionarTextoRojo()">
         <option value="">-- Selecciona una opción de la lista --</option>
         <option value="ATENCIÓN/TRATO:">ATENCIÓN/TRATO:</option>
@@ -557,6 +533,7 @@ DESCRIPCION_INPUT:
         <option value="DEVOLUCIÓN:">DEVOLUCIÓN:</option>
         <option value="ETIQUETAR:">ETIQUETAR:</option>
         <option value="FACTURAMOS MAL:">FACTURAMOS MAL:</option>
+        <option value="FELICITACIÓN:">FELICITACIÓN:</option>
         <option value="HIGIENE:">HIGIENE:</option>
         <option value="INFORMAMOS MAL:">INFORMAMOS MAL:</option>
         <option value="LIMPIEZA:">LIMPIEZA:</option>
@@ -763,7 +740,6 @@ DESCRIPCION_INPUT:
 
     function limpiarTodoFormulario() {
         document.getElementById('boxAutoPaste').value = '';
-        document.getElementById('tipoQueja').checked = true;
         document.getElementById('campoCentroNum').value = '';
         document.getElementById('campoCentroNombre').value = '';
         document.getElementById('campoZonaNum').value = '';
@@ -783,7 +759,7 @@ DESCRIPCION_INPUT:
         statusDiv.innerText = "";
         
         document.getElementById('boxAutoPaste').focus();
-        mostrarEstado("✓ Formulario limpiado. Listo para una nueva queja.", "success");
+        mostrarEstado("✓ Formulario limpiado. Listo para un nuevo informe.", "success");
     }
 
     function seleccionarTextoRojo() {
@@ -859,15 +835,6 @@ DESCRIPCION_INPUT:
             return match[1].replace(/[\*\[\]]/g, '').trim();
         };
 
-        let tipo = getVal('TIPO');
-        if (tipo) {
-            if (tipo.toLowerCase().includes('felicitaci')) {
-                document.getElementById('tipoFelicitacion').checked = true;
-            } else {
-                document.getElementById('tipoQueja').checked = true;
-            }
-        }
-
         let centroNum = getVal('CENTRO_NUM');
         if (centroNum) document.getElementById('campoCentroNum').value = centroNum;
 
@@ -936,7 +903,9 @@ DESCRIPCION_INPUT:
     }
 
     function obtenerDatosFormulario() {
-        let esFelicitacion = document.querySelector('input[name="tipoDoc"]:checked').value === "Felicitación";
+        let textoRojoBruto = document.getElementById('campoTextoRojo').value.trim();
+        let esFelicitacion = textoRojoBruto.toUpperCase().includes('FELICITACI');
+        
         let tipoPlural = esFelicitacion ? "Felicitaciones" : "Quejas";
         let tipoSingular = esFelicitacion ? "Felicitación" : "Queja";
 
@@ -957,7 +926,6 @@ DESCRIPCION_INPUT:
         let opcionesFecha = { day: 'numeric', month: 'long', year: 'numeric' };
         let fechaHoyLarga = hoy.toLocaleDateString('es-ES', opcionesFecha);
 
-        let textoRojoBruto = document.getElementById('campoTextoRojo').value.trim();
         let textoDestacadoTitulo = formatearTextoFrase(textoRojoBruto);
 
         return {
@@ -1060,7 +1028,7 @@ DESCRIPCION_INPUT:
                 "fecha_indicador": d.fechaIndicador,
                 "expediente_numero": d.expediente,
                 "fecha_exp": `${d.fechaIndicador}\n\nExpediente\n${d.expediente}`,
-                "input_texto": document.getElementById('campoInput').value.trim(),
+                "input_texto": d.inputTexto,
                 "quien_texto": d.quien,
                 "observaciones_texto": d.observaciones
             };
