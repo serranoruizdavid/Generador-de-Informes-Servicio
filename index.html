@@ -99,7 +99,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        input[type="text"], textarea, select, input[type="file"] { 
+        input[type="text"], textarea, select { 
             width: 100%; 
             padding: 11px; 
             margin-top: 5px; 
@@ -384,12 +384,19 @@
     <div class="modal-content">
         <button class="modal-close" onclick="cerrarInfoModal()">&times;</button>
         <h2 style="color: #008741; margin-top: 0;">ℹ️ Información de la Aplicación y Novedades</h2>
-        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.2</b></p>
+        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.3</b></p>
         
         <h3 style="color: #005229; border-bottom: 2px solid #008741; padding-bottom: 5px; margin-top: 20px;">📋 Historial de Mejoras e Innovaciones</h3>
 
         <div class="step-card">
-            <div class="step-title">v3.2 - Historial de Informes <span class="update-badge">NUEVO</span></div>
+            <div class="step-title">v3.3 - Auto-Carga de Plantilla <span class="update-badge">NUEVO</span></div>
+            <div class="step-desc">
+                • Eliminado el botón manual de subida. La aplicación ahora obtiene directamente el archivo <code>plantilla.docx</code> desde el repositorio de forma automática e invisible.
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-title">v3.2 - Historial de Informes</div>
             <div class="step-desc">
                 • Añadido un nuevo botón en la cabecera para consultar el historial de los informes generados localmente. Permite ver el nombre, centro, expediente y fecha de generación de los últimos 50 informes.
             </div>
@@ -399,14 +406,6 @@
             <div class="step-title">v3.1 - Optimización de Reglas para Texto Destacado</div>
             <div class="step-desc">
                 • Refinada la regla del prompt para Copilot: en clasificaciones con <b>FYC</b> se toma el combo posterior (3º nivel), mientras que en el resto se toma la categoría posterior a <b>TIENDA</b> (2º nivel).
-            </div>
-        </div>
-
-        <div class="step-card">
-            <div class="step-title">v3.0 - Simplificación de Interfaz</div>
-            <div class="step-desc">
-                • Retirada la opción de descarga multimedia externa de la interfaz principal.<br>
-                • Aplicación optimizada y centrada exclusivamente en la generación rápida de informes Word y correos.
             </div>
         </div>
 
@@ -444,8 +443,8 @@
         </div>
 
         <div class="step-card">
-            <div class="step-title">5º Auto-Rellenado y Carga de Plantilla</div>
-            <div class="step-desc">Los campos de la Sección 3 se rellenarán automáticamente. Asegúrate de tener tu archivo de <b>Plantilla (.docx)</b> previamente cargado en la aplicación.</div>
+            <div class="step-title">5º Auto-Rellenado y Plantilla Integrada</div>
+            <div class="step-desc">Los campos de la Sección 3 se rellenarán automáticamente. La <b>Plantilla Word</b> ya está configurada en el sistema y se carga automáticamente sin que tengas que hacer nada.</div>
         </div>
 
         <div class="step-card">
@@ -510,9 +509,6 @@ DESCRIPCION_INPUT:
 
 <div class="card">
     <h1>📄 3. Generar Documento Word y Redactar Correo</h1>
-
-    <label>Carga tu archivo de Plantilla (.docx):</label>
-    <input type="file" id="templateInput" accept=".docx">
 
     <div class="radio-group">
         <label><b>Tipo de Documento:</b></label>
@@ -616,15 +612,16 @@ DESCRIPCION_INPUT:
         "peniscola": "Peñíscola"
     };
 
-    document.getElementById('templateInput').addEventListener('change', function(e) {
-        let file = e.target.files[0];
-        if (!file) return;
-        let reader = new FileReader();
-        reader.onload = function(e) { 
-            templateFileBuffer = e.target.result;
-            mostrarEstado("✓ Plantilla cargada correctamente y lista para usar.", "success");
-        };
-        reader.readAsArrayBuffer(file);
+    // Auto-cargar plantilla desde el servidor al iniciar la página
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const response = await fetch('plantilla.docx');
+            if (!response.ok) throw new Error('No se encontró el archivo');
+            templateFileBuffer = await response.arrayBuffer();
+        } catch (error) {
+            console.error('Error cargando la plantilla:', error);
+            mostrarEstado("⚠️ Advertencia: No se pudo auto-cargar 'plantilla.docx' desde el servidor. Comprueba la ruta.", "error");
+        }
     });
 
     // === FUNCIONES MODALES ===
@@ -663,7 +660,7 @@ DESCRIPCION_INPUT:
         });
 
         if (historial.length > 50) {
-            historial.pop(); // Mantiene solo los últimos 50
+            historial.pop(); 
         }
 
         localStorage.setItem('historialInformes', JSON.stringify(historial));
@@ -1045,7 +1042,7 @@ DESCRIPCION_INPUT:
 
     async function generarDesdePlantillaDirecto() {
         if (!templateFileBuffer) {
-            mostrarEstado("Por favor, selecciona primero tu archivo de plantilla Word (.docx).", "error");
+            mostrarEstado("Error: La plantilla no se ha podido auto-cargar desde el servidor. Comprueba la conexión o la ruta.", "error");
             return;
         }
 
@@ -1081,14 +1078,13 @@ DESCRIPCION_INPUT:
             
             saveAs(blobFinal, nombreArchivoFinal);
             
-            // Llama a la nueva función de guardar en historial
             guardarEnHistorial(nombreArchivoFinal, d.expediente, d.centroCompleto);
             
             mostrarEstado(`¡Documento "${nombreArchivoFinal}" generado con éxito y guardado en el historial!`, "success");
 
         } catch (error) {
             console.error(error);
-            mostrarEstado("Error al procesar el archivo. Asegúrate de cargar una plantilla .docx válida.", "error");
+            mostrarEstado("Error al procesar el archivo o la plantilla.", "error");
         }
     }
 </script>
