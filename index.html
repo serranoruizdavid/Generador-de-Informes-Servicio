@@ -48,7 +48,7 @@
             display: flex;
             gap: 8px;
         }
-        .info-btn, .tutorial-btn {
+        .info-btn, .tutorial-btn, .history-btn {
             background: #eef6f2;
             color: #008741;
             border: 2px solid #008741;
@@ -69,7 +69,7 @@
             border-radius: 50%;
             font-size: 15px;
         }
-        .info-btn:hover, .tutorial-btn:hover {
+        .info-btn:hover, .tutorial-btn:hover, .history-btn:hover {
             background: #008741;
             color: white;
         }
@@ -318,12 +318,42 @@
             margin-left: 8px;
             vertical-align: middle;
         }
+
+        /* Historial */
+        .history-item {
+            background: #f9fbf9;
+            border: 1px solid #e1ebe5;
+            border-left: 4px solid #0056b3;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-title {
+            font-weight: bold;
+            color: #005229;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .history-details {
+            font-size: 12px;
+            color: #555;
+        }
+        .history-date {
+            font-size: 12px;
+            color: #888;
+            text-align: right;
+            min-width: 120px;
+        }
     </style>
 </head>
 <body>
 
 <div class="header-logo">
     <div class="header-btn-group">
+        <button class="history-btn" onclick="abrirHistorialModal()" title="Ver Historial de Informes">🕒 Historial</button>
         <button class="tutorial-btn" onclick="abrirTutorial()" title="Guía Paso a Paso">📖 Tutorial</button>
         <button class="info-btn" onclick="abrirInfoModal()" title="Información y Novedades">i</button>
     </div>
@@ -331,17 +361,42 @@
     <div class="header-subtitle">Servicio en Tienda</div>
 </div>
 
+<!-- Modal Historial -->
+<div id="historialModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close" onclick="cerrarHistorialModal()">&times;</button>
+        <h2 style="color: #008741; margin-top: 0;">🕒 Historial de Informes Generados</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #008741; padding-bottom: 10px;">
+            <p style="font-size: 14px; margin: 0; color: #555;">Últimos informes procesados y descargados en este navegador:</p>
+            <button class="clear-btn-action" style="margin: 0; font-size: 11px; padding: 6px 10px;" onclick="limpiarHistorial()">🗑️ Borrar Historial</button>
+        </div>
+        <div id="listaHistorial" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+            <!-- El contenido del historial se inyectará aquí mediante JavaScript -->
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn-word" style="padding: 10px 25px;" onclick="cerrarHistorialModal()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Información / Actualizaciones -->
 <div id="infoModal" class="modal-overlay">
     <div class="modal-content">
         <button class="modal-close" onclick="cerrarInfoModal()">&times;</button>
         <h2 style="color: #008741; margin-top: 0;">ℹ️ Información de la Aplicación y Novedades</h2>
-        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.1</b></p>
+        <p style="font-size: 14px; margin-bottom: 15px;"><b>Aplicación Generadora de Informes de Servicio</b><br>Autor: David Serrano Ruiz | Versión Actual: <b>3.2</b></p>
         
         <h3 style="color: #005229; border-bottom: 2px solid #008741; padding-bottom: 5px; margin-top: 20px;">📋 Historial de Mejoras e Innovaciones</h3>
 
         <div class="step-card">
-            <div class="step-title">v3.1 - Optimización de Reglas para Texto Destacado <span class="update-badge">NUEVO</span></div>
+            <div class="step-title">v3.2 - Historial de Informes <span class="update-badge">NUEVO</span></div>
+            <div class="step-desc">
+                • Añadido un nuevo botón en la cabecera para consultar el historial de los informes generados localmente. Permite ver el nombre, centro, expediente y fecha de generación de los últimos 50 informes.
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-title">v3.1 - Optimización de Reglas para Texto Destacado</div>
             <div class="step-desc">
                 • Refinada la regla del prompt para Copilot: en clasificaciones con <b>FYC</b> se toma el combo posterior (3º nivel), mientras que en el resto se toma la categoría posterior a <b>TIENDA</b> (2º nivel).
             </div>
@@ -352,13 +407,6 @@
             <div class="step-desc">
                 • Retirada la opción de descarga multimedia externa de la interfaz principal.<br>
                 • Aplicación optimizada y centrada exclusivamente en la generación rápida de informes Word y correos.
-            </div>
-        </div>
-
-        <div class="step-card">
-            <div class="step-title">v2.7 - Restricción Estricta del Campo Observaciones</div>
-            <div class="step-desc">
-                • Reforzado el prompt de Copilot para exigir que el campo <b>OBSERVACIONES:</b> corresponda exclusivamente a la casilla <b>"Anotaciones"</b> del CRM.
             </div>
         </div>
 
@@ -407,7 +455,7 @@
 
         <div class="step-card">
             <div class="step-title">7º Generación del Documento Word</div>
-            <div class="step-desc">Haz clic en <b>"📄 1. Descargar Word (.docx)"</b>. El informe se descargará con el nombre oficial formateado.</div>
+            <div class="step-desc">Haz clic en <b>"📄 1. Descargar Word (.docx)"</b>. El informe se descargará con el nombre oficial formateado y quedará guardado en el <b>Historial</b>.</div>
         </div>
 
         <div class="step-card">
@@ -579,20 +627,73 @@ DESCRIPCION_INPUT:
         reader.readAsArrayBuffer(file);
     });
 
+    // === FUNCIONES MODALES ===
     function abrirInfoModal() {
         document.getElementById('infoModal').style.display = 'flex';
     }
-
     function cerrarInfoModal() {
         document.getElementById('infoModal').style.display = 'none';
     }
-
     function abrirTutorial() {
         document.getElementById('tutorialModal').style.display = 'flex';
     }
-
     function cerrarTutorial() {
         document.getElementById('tutorialModal').style.display = 'none';
+    }
+    function abrirHistorialModal() {
+        renderizarHistorial();
+        document.getElementById('historialModal').style.display = 'flex';
+    }
+    function cerrarHistorialModal() {
+        document.getElementById('historialModal').style.display = 'none';
+    }
+
+    // === LÓGICA DE HISTORIAL ===
+    function guardarEnHistorial(nombreArchivo, expediente, centro) {
+        let historial = JSON.parse(localStorage.getItem('historialInformes') || '[]');
+        
+        let ahora = new Date();
+        let fechaFormateada = ahora.toLocaleDateString('es-ES') + " " + ahora.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+        
+        historial.unshift({
+            fecha: fechaFormateada,
+            nombreArchivo: nombreArchivo,
+            expediente: expediente || 'Sin exp.',
+            centro: centro || 'Desconocido'
+        });
+
+        if (historial.length > 50) {
+            historial.pop(); // Mantiene solo los últimos 50
+        }
+
+        localStorage.setItem('historialInformes', JSON.stringify(historial));
+    }
+
+    function renderizarHistorial() {
+        let historial = JSON.parse(localStorage.getItem('historialInformes') || '[]');
+        let contenedor = document.getElementById('listaHistorial');
+        
+        if (historial.length === 0) {
+            contenedor.innerHTML = '<p style="text-align:center; color:#888; font-style: italic; margin-top: 30px;">No hay informes generados todavía. El historial se guardará en tu navegador.</p>';
+            return;
+        }
+
+        contenedor.innerHTML = historial.map(item => `
+            <div class="history-item">
+                <div>
+                    <div class="history-title">${item.nombreArchivo}</div>
+                    <div class="history-details">Centro: <b>${item.centro}</b> | Exp: <b>${item.expediente}</b></div>
+                </div>
+                <div class="history-date">${item.fecha}</div>
+            </div>
+        `).join('');
+    }
+
+    function limpiarHistorial() {
+        if(confirm("¿Estás seguro de que deseas borrar todo el historial? Esta acción no se puede deshacer.")) {
+            localStorage.removeItem('historialInformes');
+            renderizarHistorial();
+        }
     }
 
     function abrirCopilotDirecto(event) {
@@ -823,7 +924,7 @@ DESCRIPCION_INPUT:
         }
 
         if (inputExtraido) {
-            inputExtraido = inputExtraido.replace(/^\[|\]$/g, '').trim();
+            inputExtraido = inputExtraido.replace(/^\[\vert{}\]$/g, '').trim();
             document.getElementById('campoInput').value = inputExtraido;
         }
 
@@ -977,8 +1078,13 @@ DESCRIPCION_INPUT:
 
             let sufijoDestacado = d.textoDestacadoTitulo ? ` ${d.textoDestacadoTitulo}` : '';
             let nombreArchivoFinal = `${d.fechaAAMMDD} ${d.tipoSingular} de Servicio C-${d.centroNum}${sufijoDestacado}.docx`;
+            
             saveAs(blobFinal, nombreArchivoFinal);
-            mostrarEstado(`¡Documento "${nombreArchivoFinal}" generado con éxito!`, "success");
+            
+            // Llama a la nueva función de guardar en historial
+            guardarEnHistorial(nombreArchivoFinal, d.expediente, d.centroCompleto);
+            
+            mostrarEstado(`¡Documento "${nombreArchivoFinal}" generado con éxito y guardado en el historial!`, "success");
 
         } catch (error) {
             console.error(error);
